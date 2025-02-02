@@ -1,21 +1,25 @@
-package ru.practicum.shareit.request;
+package ru.practicum.shareit.item;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import ru.practicum.shareit.request.ItemRequest;
 import ru.practicum.shareit.user.User;
 
-import java.time.LocalDate;
-
 @Data
-public class ItemRequest {
+public class Item {
     Long id;
+
+    @NotBlank
+    String name;
 
     @NotBlank
     String description;
 
-    @NotNull
-    User requestor;
+    boolean available;
 
-    LocalDate created;
+    @NotNull
+    User owner;
+
+    ItemRequest request;
 }
