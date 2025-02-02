@@ -1,5 +1,8 @@
 package ru.practicum.shareit.booking;
 
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import ru.practicum.shareit.item.Item;
 import ru.practicum.shareit.user.User;
@@ -7,16 +10,22 @@ import ru.practicum.shareit.user.User;
 import java.time.LocalDate;
 
 @Data
+@Builder(toBuilder = true)
+@AllArgsConstructor
 public class Booking {
-    Long id;
+    private Long id;
 
-    LocalDate start;
+    @NotNull
+    private LocalDate start;
 
-    LocalDate end;
+    @NotNull
+    private LocalDate end;
 
-    Item item;
+    @NotNull
+    private Item item;
 
-    User booker;
+    @NotNull
+    private User booker;
 
-    BookingStatus status;
+    private BookingStatus status;
 }

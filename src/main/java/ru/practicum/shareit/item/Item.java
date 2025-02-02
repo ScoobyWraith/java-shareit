@@ -2,24 +2,28 @@ package ru.practicum.shareit.item;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import ru.practicum.shareit.request.ItemRequest;
 import ru.practicum.shareit.user.User;
 
 @Data
+@Builder(toBuilder = true)
+@AllArgsConstructor
 public class Item {
-    Long id;
+    private Long id;
 
     @NotBlank
-    String name;
+    private String name;
 
     @NotBlank
-    String description;
+    private String description;
 
-    boolean available;
+    private boolean available;
 
     @NotNull
-    User owner;
+    private User owner;
 
-    ItemRequest request;
+    private ItemRequest request;
 }
