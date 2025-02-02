@@ -1,45 +1,33 @@
 package ru.practicum.shareit.user.service;
 
-import jakarta.validation.ValidationException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import ru.practicum.shareit.exception.EmailRepeated;
 import ru.practicum.shareit.exception.NotFound;
 import ru.practicum.shareit.user.User;
-import ru.practicum.shareit.user.UserMapper;
-import ru.practicum.shareit.user.dto.UserCreateDto;
-import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.storage.UserStorage;
 
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserStorage userStorage;
-    private final UserMapper userMapper;
-
-    public UserServiceImpl(UserStorage userStorage, UserMapper userMapper) {
-        this.userStorage = userStorage;
-        this.userMapper = userMapper;
-    }
 
     @Override
-    public UserDto create(UserCreateDto userDto) {
-        User user = userMapper.fromUserCreateDto(userDto);
+    public User create(User user) {
         checkEmailRepeat(user);
-        return userMapper.toUserDto(userStorage.create(user));
+        return userStorage.create(user);
     }
 
     @Override
-    public UserDto get(Long id) {
-        User user = getUserWithExistingCheck(id);
-        return userMapper.toUserDto(user);
+    public User get(Long id) {
+        return getUserWithExistingCheck(id);
     }
 
     @Override
-    public UserDto update(UserDto userDto, Long userId) {
+    public User update(User updatedUser, Long userId) throws NotFound {
         User user = getUserWithExistingCheck(userId);
-        User updatedUser = userMapper.fromUserDto(userDto);
 
         if (updatedUser.getEmail() != null) {
             user.setEmail(updatedUser.getEmail());
@@ -50,14 +38,14 @@ public class UserServiceImpl implements UserService {
             user.setName(updatedUser.getName());
         }
 
-        return userMapper.toUserDto(userStorage.update(user));
+        return userStorage.update(user);
     }
 
     @Override
-    public UserDto delete(Long id) {
+    public User delete(Long id) throws NotFound {
         User user = getUserWithExistingCheck(id);
         userStorage.deleteById(id);
-        return userMapper.toUserDto(user);
+        return user;
     }
 
     private User getUserWithExistingCheck(Long id) {

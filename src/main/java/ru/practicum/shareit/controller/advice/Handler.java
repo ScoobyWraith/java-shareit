@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.practicum.shareit.exception.EmailRepeated;
+import ru.practicum.shareit.exception.IllegalOwner;
 import ru.practicum.shareit.exception.NotFound;
 
 import java.util.stream.Collectors;
@@ -38,6 +39,12 @@ public class Handler {
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleEmailRepeated(final EmailRepeated e) {
         return new ErrorResponse("Conflict exception", e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleIllegalOwner(final IllegalOwner e) {
+        return new ErrorResponse("Access deny", e.getMessage());
     }
 
     @ExceptionHandler
