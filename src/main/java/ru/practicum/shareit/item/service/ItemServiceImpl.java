@@ -5,35 +5,39 @@ import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exception.IllegalOwner;
 import ru.practicum.shareit.exception.NotFound;
 import ru.practicum.shareit.item.Item;
+import ru.practicum.shareit.item.ItemMapper;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemUpdateDto;
 import ru.practicum.shareit.item.storage.ItemStorage;
 import ru.practicum.shareit.user.User;
-import ru.practicum.shareit.user.service.UserService;
+import ru.practicum.shareit.user.storage.UserStorage;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
     private final ItemStorage itemStorage;
-    private final UserService userService;
+    private final UserStorage userStorage;
+    private final ItemMapper itemMapper;
 
     @Override
-    public Item create(Long ownerId, Item item) throws NotFound {
-        User user = userService.get(ownerId);
+    public ItemDto create(Long ownerId, ItemDto itemDto) throws NotFound {
+        User user = userStorage.getById(ownerId);
+        Item item = itemMapper.fromItemDto(itemDto);
         item.setOwner(user);
-        return itemStorage.create(item);
+        return itemMapper.toItemDto(itemStorage.create(item));
     }
 
     @Override
-    public Item get(Long id) throws NotFound {
-        return getItemWithExistingCheck(id);
+    public ItemDto get(Long id) throws NotFound {
+        return itemMapper.toItemDto(itemStorage.getById(id));
     }
 
     @Override
-    public Item update(Long ownerId, Long itemId, Item updatedItem) throws NotFound, IllegalOwner {
-        User user = userService.get(ownerId);
-        Item item = getItemWithExistingCheck(itemId);
+    public ItemDto update(Long ownerId, Long itemId, ItemUpdateDto updatedItem) throws NotFound, IllegalOwner {
+        User user = userStorage.getById(ownerId);
+        Item item = itemStorage.getById(itemId);
         checkOwnerRights(item, user);
 
         if (updatedItem.getName() != null) {
@@ -48,40 +52,37 @@ public class ItemServiceImpl implements ItemService {
             item.setAvailable(updatedItem.getAvailable());
         }
 
-        return itemStorage.update(item);
+        return itemMapper.toItemDto(itemStorage.update(item));
     }
 
     @Override
-    public Item delete(Long ownerId, Long itemId) throws NotFound, IllegalOwner {
-        User user = userService.get(ownerId);
-        Item item = getItemWithExistingCheck(itemId);
+    public ItemDto delete(Long ownerId, Long itemId) throws NotFound, IllegalOwner {
+        User user = userStorage.getById(ownerId);
+        Item item = itemStorage.getById(itemId);
         checkOwnerRights(item, user);
-        itemStorage.delete(itemId);
-        return item;
+        itemStorage.deleteById(itemId);
+        return itemMapper.toItemDto(item);
     }
 
     @Override
-    public List<Item> search(String searchText) {
+    public List<ItemDto> search(String searchText) {
         if (searchText == null || searchText.isBlank()) {
             return List.of();
         }
 
-        return itemStorage.search(searchText);
+        return itemStorage.search(searchText)
+                .stream()
+                .map(itemMapper::toItemDto)
+                .toList();
     }
 
     @Override
-    public List<Item> getByOwner(Long ownerId) throws NotFound {
-        return itemStorage.getByOwner(ownerId);
-    }
-
-    private Item getItemWithExistingCheck(Long id) {
-        Optional<Item> itemOpt = itemStorage.get(id);
-
-        if (itemOpt.isEmpty()) {
-            throw new NotFound(String.format("Item with id %d not found", id));
-        }
-
-        return itemOpt.get();
+    public List<ItemDto> getByOwner(Long ownerId) throws NotFound {
+        userStorage.getById(ownerId);
+        return itemStorage.getByOwner(ownerId)
+                .stream()
+                .map(itemMapper::toItemDto)
+                .toList();
     }
 
     private void checkOwnerRights(Item item, User user) {

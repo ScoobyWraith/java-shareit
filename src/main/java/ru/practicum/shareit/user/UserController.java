@@ -23,35 +23,32 @@ import ru.practicum.shareit.user.service.UserService;
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
-    private final UserMapper userMapper;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public UserDto createUser(@Valid @RequestBody UserCreateDto userDto) {
-        log.info("Request to add user: {}", userDto);
-        User user = userMapper.fromUserCreateDto(userDto);
-        return userMapper.toUserDto(userService.create(user));
+    public UserDto createUser(@Valid @RequestBody UserCreateDto userCreateDto) {
+        log.info("Request to add user: {}", userCreateDto);
+        return userService.create(userCreateDto);
     }
 
     @PatchMapping("/{userId}")
     @ResponseStatus(HttpStatus.OK)
     public UserDto updateUser(@Valid @RequestBody UserDto userDto, @PathVariable Long userId) {
         log.info("Request to update user: {}", userDto);
-        User user = userMapper.fromUserDto(userDto);
-        return userMapper.toUserDto(userService.update(user, userId));
+        return userService.update(userDto, userId);
     }
 
     @GetMapping("/{userId}")
     @ResponseStatus(HttpStatus.OK)
     public UserDto getUser(@PathVariable Long userId) {
         log.info("Request to get user with id {}", userId);
-        return userMapper.toUserDto(userService.get(userId));
+        return userService.get(userId);
     }
 
     @DeleteMapping("/{userId}")
     @ResponseStatus(HttpStatus.OK)
     public UserDto deleteUser(@PathVariable Long userId) {
         log.info("Request to delete user with id {}", userId);
-        return userMapper.toUserDto(userService.delete(userId));
+        return userService.delete(userId);
     }
 }

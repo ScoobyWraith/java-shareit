@@ -1,18 +1,18 @@
 package ru.practicum.shareit.item.storage;
 
+import ru.practicum.shareit.exception.NotFound;
 import ru.practicum.shareit.item.Item;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface ItemStorage {
     Item create(Item item);
 
-    Optional<Item> get(Long id);
+    Item getById(Long id) throws NotFound;
 
     Item update(Item item);
 
-    void delete(Long id);
+    void deleteById(Long id) throws NotFound;
 
     List<Item> getByOwner(Long ownerId);
 

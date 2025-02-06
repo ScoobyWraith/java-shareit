@@ -1,14 +1,15 @@
 package ru.practicum.shareit.user.service;
 
 import ru.practicum.shareit.exception.NotFound;
-import ru.practicum.shareit.user.User;
+import ru.practicum.shareit.user.dto.UserCreateDto;
+import ru.practicum.shareit.user.dto.UserDto;
 
 public interface UserService {
-    User create(User user);
+    UserDto create(UserCreateDto userCreateDto);
 
-    User get(Long id) throws NotFound;
+    UserDto get(Long id) throws NotFound;
 
-    User update(User user, Long userId) throws NotFound;
+    UserDto update(UserDto userDto, Long userId) throws NotFound;
 
-    User delete(Long id) throws NotFound;
+    UserDto delete(Long id) throws NotFound;
 }

@@ -1,49 +1,62 @@
 package ru.practicum.shareit.item.storage;
 
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
+import ru.practicum.shareit.exception.NotFound;
 import ru.practicum.shareit.item.Item;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
-@Component
+@Repository
 public class InMemoryItemStorage implements ItemStorage {
     private final Map<Long, Item> items = new HashMap<>();
 
     @Override
     public Item create(Item item) {
-        item = item.toBuilder().build();
+        item = item
+                .toBuilder()
+                .build();
         item.setId(generateNewId());
         items.put(item.getId(), item);
         return item;
     }
 
     @Override
-    public Optional<Item> get(Long id) {
-        if (items.containsKey(id)) {
-            return Optional.of(items.get(id));
+    public Item getById(Long id) {
+        if (!items.containsKey(id)) {
+            throw new NotFound(String.format("Item with id %d not found.", id));
         }
 
-        return Optional.empty();
+        return items.get(id)
+                .toBuilder()
+                .build();
     }
 
     @Override
     public Item update(Item item) {
-        item = item.toBuilder().build();
+        item = item
+                .toBuilder()
+                .build();
         items.put(item.getId(), item);
         return item;
     }
 
     @Override
-    public void delete(Long id) {
+    public void deleteById(Long id) {
+        if (!items.containsKey(id)) {
+            throw new NotFound(String.format("Item with id %d not found.", id));
+        }
+
         items.remove(id);
     }
 
     @Override
     public List<Item> getByOwner(Long ownerId) {
-        return items.values().stream().filter(item -> item.getOwner().getId().equals(ownerId)).toList();
+        return items.values()
+                .stream()
+                .filter(item -> item.getOwner().getId().equals(ownerId))
+                .toList();
     }
 
     @Override
@@ -56,7 +69,8 @@ public class InMemoryItemStorage implements ItemStorage {
     }
 
     private long generateNewId() {
-        return items.keySet().stream()
+        return items.keySet()
+                .stream()
                 .max(Long::compare)
                 .orElse(0L) + 1;
     }

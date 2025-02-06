@@ -1,17 +1,16 @@
 package ru.practicum.shareit.user.storage;
 
+import ru.practicum.shareit.exception.NotFound;
 import ru.practicum.shareit.user.User;
-
-import java.util.Optional;
 
 public interface UserStorage {
     User create(User user);
 
     User update(User user);
 
-    Optional<User> getById(Long id);
+    User getById(Long id) throws NotFound;
 
-    Optional<User> getByEmail(String email);
+    User getByEmail(String email) throws NotFound;
 
-    void deleteById(Long id);
+    void deleteById(Long id) throws NotFound;
 }

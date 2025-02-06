@@ -27,13 +27,11 @@ import java.util.List;
 @Slf4j
 public class ItemController {
     private final ItemService itemService;
-    private final ItemMapper itemMapper;
 
     @PostMapping
     public ItemDto createItem(@RequestHeader("X-Sharer-User-Id") long userId, @Valid @RequestBody ItemDto itemDto) {
         log.info("Request from user {} to create item: {}", userId, itemDto);
-        Item item = itemMapper.fromItemDto(itemDto);
-        return itemMapper.toItemDto(itemService.create(userId, item));
+        return itemService.create(userId, itemDto);
     }
 
     @PatchMapping("/{itemId}")
@@ -41,25 +39,24 @@ public class ItemController {
                            @Valid @RequestBody ItemUpdateDto itemDto,
                            @PathVariable Long itemId) {
         log.info("Request from user {} to update item: {}", userId, itemDto);
-        Item item = itemMapper.fromItemUpdateDto(itemDto);
-        return itemMapper.toItemDto(itemService.update(userId, itemId, item));
+        return itemService.update(userId, itemId, itemDto);
     }
 
     @GetMapping("/{itemId}")
     public ItemDto getItem(@PathVariable Long itemId) {
         log.info("Request to get item {}", itemId);
-        return itemMapper.toItemDto(itemService.get(itemId));
+        return itemService.get(itemId);
     }
 
     @GetMapping
     public List<ItemDto> getAllItemsByOwner(@RequestHeader("X-Sharer-User-Id") long userId) {
         log.info("Request to get all items for user: {}", userId);
-        return itemService.getByOwner(userId).stream().map(itemMapper::toItemDto).toList();
+        return itemService.getByOwner(userId);
     }
 
     @GetMapping("/search")
     public List<ItemDto> searchItems(@RequestParam String text) {
         log.info("Request to search items with text: {}", text);
-        return itemService.search(text).stream().map(itemMapper::toItemDto).toList();
+        return itemService.search(text);
     }
 }

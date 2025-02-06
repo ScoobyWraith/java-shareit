@@ -5,64 +5,59 @@ import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exception.EmailRepeated;
 import ru.practicum.shareit.exception.NotFound;
 import ru.practicum.shareit.user.User;
+import ru.practicum.shareit.user.UserMapper;
+import ru.practicum.shareit.user.dto.UserCreateDto;
+import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.storage.UserStorage;
-
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserStorage userStorage;
+    private final UserMapper userMapper;
 
     @Override
-    public User create(User user) {
+    public UserDto create(UserCreateDto userCreateDto) {
+        User user = userMapper.fromUserCreateDto(userCreateDto);
         checkEmailRepeat(user);
-        return userStorage.create(user);
+        return userMapper.toUserDto(userStorage.create(user));
     }
 
     @Override
-    public User get(Long id) {
-        return getUserWithExistingCheck(id);
+    public UserDto get(Long id) {
+        return userMapper.toUserDto(userStorage.getById(id));
     }
 
     @Override
-    public User update(User updatedUser, Long userId) throws NotFound {
-        User user = getUserWithExistingCheck(userId);
+    public UserDto update(UserDto userDto, Long userId) throws NotFound {
+        User user = userStorage.getById(userId);
 
-        if (updatedUser.getEmail() != null) {
-            user.setEmail(updatedUser.getEmail());
+        if (userDto.getEmail() != null) {
+            user.setEmail(userDto.getEmail());
             checkEmailRepeat(user);
         }
 
-        if (updatedUser.getName() != null) {
-            user.setName(updatedUser.getName());
+        if (userDto.getName() != null) {
+            user.setName(userDto.getName());
         }
 
-        return userStorage.update(user);
+        return userMapper.toUserDto(userStorage.update(user));
     }
 
     @Override
-    public User delete(Long id) throws NotFound {
-        User user = getUserWithExistingCheck(id);
+    public UserDto delete(Long id) throws NotFound {
+        User user = userStorage.getById(id);
         userStorage.deleteById(id);
-        return user;
-    }
-
-    private User getUserWithExistingCheck(Long id) {
-        Optional<User> userOpt = userStorage.getById(id);
-
-        if (userOpt.isEmpty()) {
-            throw new NotFound(String.format("User with id %d not found", id));
-        }
-
-        return userOpt.get();
+        return userMapper.toUserDto(user);
     }
 
     private void checkEmailRepeat(User user) {
-        Optional<User> userOpt = userStorage.getByEmail(user.getEmail());
+        try {
+            User presentedUser = userStorage.getByEmail(user.getEmail());
 
-        if (userOpt.isPresent() && !userOpt.get().getId().equals(user.getId())) {
-            throw new EmailRepeated("Field email must be unique");
-        }
+            if (!presentedUser.getId().equals(user.getId())) {
+                throw new EmailRepeated("Field email must be unique");
+            }
+        } catch (NotFound ignored) { }
     }
 }
