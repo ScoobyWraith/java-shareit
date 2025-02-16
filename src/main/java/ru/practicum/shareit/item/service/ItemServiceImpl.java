@@ -2,42 +2,46 @@ package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.IllegalOwner;
 import ru.practicum.shareit.exception.NotFound;
 import ru.practicum.shareit.item.Item;
 import ru.practicum.shareit.item.ItemMapper;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemUpdateDto;
-import ru.practicum.shareit.item.storage.ItemStorage;
+import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.user.User;
-import ru.practicum.shareit.user.storage.UserStorage;
+import ru.practicum.shareit.user.storage.UserRepository;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ItemServiceImpl implements ItemService {
-    private final ItemStorage itemStorage;
-    private final UserStorage userStorage;
+    private final ItemRepository itemRepository;
+    private final UserRepository userRepository;
     private final ItemMapper itemMapper;
 
     @Override
     public ItemDto create(Long ownerId, ItemDto itemDto) throws NotFound {
-        User user = userStorage.getById(ownerId);
+        User user = getUserWithCheck(ownerId);
         Item item = itemMapper.fromItemDto(itemDto);
         item.setOwner(user);
-        return itemMapper.toItemDto(itemStorage.create(item));
+        return itemMapper.toItemDto(itemRepository.save(item));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ItemDto get(Long id) throws NotFound {
-        return itemMapper.toItemDto(itemStorage.getById(id));
+        Item item = getItemWithCheck(id);
+        return itemMapper.toItemDto(item);
     }
 
     @Override
     public ItemDto update(Long ownerId, Long itemId, ItemUpdateDto updatedItem) throws NotFound, IllegalOwner {
-        User user = userStorage.getById(ownerId);
-        Item item = itemStorage.getById(itemId);
+        User user = getUserWithCheck(ownerId);
+        Item item = getItemWithCheck(itemId);
         checkOwnerRights(item, user);
 
         if (updatedItem.getName() != null) {
@@ -52,34 +56,36 @@ public class ItemServiceImpl implements ItemService {
             item.setAvailable(updatedItem.getAvailable());
         }
 
-        return itemMapper.toItemDto(itemStorage.update(item));
+        return itemMapper.toItemDto(itemRepository.save(item));
     }
 
     @Override
     public ItemDto delete(Long ownerId, Long itemId) throws NotFound, IllegalOwner {
-        User user = userStorage.getById(ownerId);
-        Item item = itemStorage.getById(itemId);
+        User user = getUserWithCheck(ownerId);
+        Item item = getItemWithCheck(itemId);
         checkOwnerRights(item, user);
-        itemStorage.deleteById(itemId);
+        itemRepository.deleteById(itemId);
         return itemMapper.toItemDto(item);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ItemDto> search(String searchText) {
         if (searchText == null || searchText.isBlank()) {
             return List.of();
         }
 
-        return itemStorage.search(searchText)
+        return itemRepository.search(searchText)
                 .stream()
                 .map(itemMapper::toItemDto)
                 .toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ItemDto> getByOwner(Long ownerId) throws NotFound {
-        userStorage.getById(ownerId);
-        return itemStorage.getByOwner(ownerId)
+        getUserWithCheck(ownerId);
+        return itemRepository.findAllByOwnerId(ownerId)
                 .stream()
                 .map(itemMapper::toItemDto)
                 .toList();
@@ -89,5 +95,15 @@ public class ItemServiceImpl implements ItemService {
         if (!item.getOwner().getId().equals(user.getId())) {
             throw new IllegalOwner(String.format("User %d has not rights for item %d", user.getId(), item.getId()));
         }
+    }
+
+    private User getUserWithCheck(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new NotFound(String.format("User with id %d not found.", id)));
+    }
+
+    private Item getItemWithCheck(Long id) {
+        return itemRepository.findById(id)
+                .orElseThrow(() -> new NotFound(String.format("Item with id %d not found.", id)));
     }
 }
