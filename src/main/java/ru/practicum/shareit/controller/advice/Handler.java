@@ -7,6 +7,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import ru.practicum.shareit.exception.BookingUnavailable;
 import ru.practicum.shareit.exception.EmailRepeated;
 import ru.practicum.shareit.exception.IllegalOwner;
 import ru.practicum.shareit.exception.NotFound;
@@ -45,6 +46,12 @@ public class Handler {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ErrorResponse handleIllegalOwner(final IllegalOwner e) {
         return new ErrorResponse("Access deny", e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleBookingUnavailable(final BookingUnavailable e) {
+        return new ErrorResponse("Unavailable booking", e.getMessage());
     }
 
     @ExceptionHandler

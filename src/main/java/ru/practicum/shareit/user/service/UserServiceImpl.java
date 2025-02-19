@@ -9,6 +9,7 @@ import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.dto.UserCreateDto;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.storage.UserRepository;
+import ru.practicum.shareit.util.RepositoryUtil;
 
 @Service
 @RequiredArgsConstructor
@@ -27,13 +28,13 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserDto get(Long id) {
-        User user = getUserWithCheck(id);
+        User user = RepositoryUtil.getUserWithCheck(userRepository, id);
         return userMapper.toUserDto(user);
     }
 
     @Override
     public UserDto update(UserDto userDto, Long userId) throws NotFound {
-        User user = getUserWithCheck(userId);
+        User user = RepositoryUtil.getUserWithCheck(userRepository, userId);
 
         if (userDto.getEmail() != null) {
             user.setEmail(userDto.getEmail());
@@ -48,13 +49,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto delete(Long id) throws NotFound {
-        User user = getUserWithCheck(id);
+        User user = RepositoryUtil.getUserWithCheck(userRepository, id);
         userRepository.deleteById(id);
         return userMapper.toUserDto(user);
-    }
-
-    private User getUserWithCheck(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new NotFound(String.format("User with id %d not found.", id)));
     }
 }

@@ -2,6 +2,7 @@ package ru.practicum.shareit.request;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -16,7 +17,7 @@ import lombok.Setter;
 import lombok.ToString;
 import ru.practicum.shareit.user.User;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Builder(toBuilder = true)
 @AllArgsConstructor
@@ -33,10 +34,11 @@ public class ItemRequest {
     @Column(name = "description", nullable = false, length = 1000)
     private String description;
 
-    @ManyToOne
+    @ToString.Exclude
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "requestor_id")
     private User requestor;
 
     @Column(name = "created")
-    private LocalDate created;
+    private LocalDateTime created;
 }
