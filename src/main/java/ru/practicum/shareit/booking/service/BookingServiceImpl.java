@@ -23,7 +23,6 @@ import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.RepositoryUtil;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -143,7 +142,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private Optional<BooleanExpression> getBookingConditionsByState(BookingState state) {
-        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now();
         BooleanExpression dateTimeExpression;
         BooleanExpression statusExpression;
         QBooking qBooking = QBooking.booking;
