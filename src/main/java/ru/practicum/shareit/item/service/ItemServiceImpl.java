@@ -3,18 +3,26 @@ package ru.practicum.shareit.item.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.booking.Booking;
+import ru.practicum.shareit.booking.BookingMapper;
+import ru.practicum.shareit.booking.dto.BookingOnlyDatesDto;
+import ru.practicum.shareit.booking.storage.BookingRepository;
 import ru.practicum.shareit.exception.IllegalOwner;
 import ru.practicum.shareit.exception.NotFound;
 import ru.practicum.shareit.item.Item;
 import ru.practicum.shareit.item.ItemMapper;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemUpdateDto;
+import ru.practicum.shareit.item.dto.ItemWithBookingDto;
 import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.RepositoryUtil;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +30,9 @@ import java.util.List;
 public class ItemServiceImpl implements ItemService {
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
+    private final BookingRepository bookingRepository;
     private final ItemMapper itemMapper;
+    private final BookingMapper bookingMapper;
 
     @Override
     public ItemDto create(Long ownerId, ItemDto itemDto) throws NotFound {
@@ -84,11 +94,39 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ItemDto> getByOwner(Long ownerId) throws NotFound {
+    public List<ItemWithBookingDto> getByOwner(Long ownerId) throws NotFound {
         RepositoryUtil.getUserWithCheck(userRepository, ownerId);
-        return itemRepository.findAllByOwnerId(ownerId)
+        List<Item> items = itemRepository.findAllByOwnerId(ownerId);
+
+        if (items.isEmpty()) {
+            return List.of();
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        List<Long> itemIds = items.stream()
+                .map(Item::getId)
+                .toList();
+
+        Map<Long, Booking> lastBookingsForItemsMap = bookingRepository
+                .findAllLastBookingsForItems(now, itemIds)
                 .stream()
-                .map(itemMapper::toItemDto)
+                .collect(Collectors.toMap(booking -> booking.getItem().getId(), booking -> booking));
+
+        Map<Long, Booking> nearestNextBookingsForItemsMap = bookingRepository
+                .findAllNearestNextBookingsForItemsMap(now, itemIds)
+                .stream()
+                .collect(Collectors.toMap(booking -> booking.getItem().getId(), booking -> booking));
+
+        return items.stream()
+                .map(item -> {
+                    BookingOnlyDatesDto lastBooking = lastBookingsForItemsMap.containsKey(item.getId())
+                            ? bookingMapper.toBookingOnlyDatesDto(lastBookingsForItemsMap.get(item.getId()))
+                            : null;
+                    BookingOnlyDatesDto nearestNextBooking = nearestNextBookingsForItemsMap.containsKey(item.getId())
+                            ? bookingMapper.toBookingOnlyDatesDto(nearestNextBookingsForItemsMap.get(item.getId()))
+                            : null;
+                    return itemMapper.toItemWithBookingDto(item, lastBooking, nearestNextBooking);
+                })
                 .toList();
     }
 }

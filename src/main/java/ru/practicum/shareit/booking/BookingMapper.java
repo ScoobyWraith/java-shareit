@@ -3,6 +3,7 @@ package ru.practicum.shareit.booking;
 import org.springframework.stereotype.Component;
 import ru.practicum.shareit.booking.dto.BookingCreateDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
+import ru.practicum.shareit.booking.dto.BookingOnlyDatesDto;
 import ru.practicum.shareit.item.Item;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.user.User;
@@ -33,6 +34,14 @@ public class BookingMapper {
                 .end(LocalDateTime.parse(bookingCreateDto.getEnd(), dateTimeFormatter))
                 .booker(booker)
                 .item(item)
+                .build();
+    }
+
+    public BookingOnlyDatesDto toBookingOnlyDatesDto(Booking booking) {
+        return BookingOnlyDatesDto.builder()
+                .id(booking.getId())
+                .start(dateTimeFormatter.format(booking.getStart()))
+                .end(dateTimeFormatter.format(booking.getEnd()))
                 .build();
     }
 }
