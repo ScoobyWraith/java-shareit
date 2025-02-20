@@ -120,15 +120,16 @@ public class ItemServiceImpl implements ItemService {
     public CommentDto addComment(Long userId, Long itemId, CommentCreateDto commentCreateDto) {
         User user = RepositoryUtil.getUserWithCheck(userRepository, userId);
         Item item = RepositoryUtil.getItemWithCheck(itemRepository, itemId);
+        LocalDateTime now = LocalDateTime.now();
 
-        Optional<Booking> finishedBooking = bookingRepository.findFirstByBookerAndItemAndStatusAndEndBefore(
+        Optional<Booking> startedBooking = bookingRepository.findFirstByBookerAndItemAndStatusAndStartBefore(
                 user,
                 item,
                 BookingStatus.APPROVED,
-                LocalDateTime.now()
+                now
         );
 
-        if (finishedBooking.isEmpty()) {
+        if (startedBooking.isEmpty()) {
             throw new IllegalComment("Comment may be created only by user who booked this item");
         }
 
