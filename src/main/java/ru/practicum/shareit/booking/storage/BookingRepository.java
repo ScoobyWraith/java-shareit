@@ -4,9 +4,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import ru.practicum.shareit.booking.Booking;
+import ru.practicum.shareit.booking.BookingStatus;
+import ru.practicum.shareit.item.Item;
+import ru.practicum.shareit.user.User;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface BookingRepository extends JpaRepository<Booking, Long>, QuerydslPredicateExecutor<Booking> {
     @Query(nativeQuery = true, value
@@ -24,4 +28,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, Queryds
                 "WHERE b.start_date > ?1 AND b.item_id IN (?2)" +
             ") WHERE anchor = 1")
     List<Booking> findAllNearestNextBookingsForItemsMap(LocalDateTime dateTime, List<Long> items);
+
+    Optional<Booking> findFirstByBookerAndItemAndStatusAndEndBefore(
+            User booker,
+            Item item,
+            BookingStatus status,
+            LocalDateTime now
+    );
 }

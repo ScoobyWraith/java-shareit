@@ -22,7 +22,9 @@ import ru.practicum.shareit.user.User;
 @Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter @Setter @ToString
+@Getter
+@Setter
+@ToString
 @Entity
 @Table(name = "items")
 public class Item {

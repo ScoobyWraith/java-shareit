@@ -5,15 +5,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.Booking;
 import ru.practicum.shareit.booking.BookingMapper;
+import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.booking.dto.BookingOnlyDatesDto;
 import ru.practicum.shareit.booking.storage.BookingRepository;
+import ru.practicum.shareit.exception.IllegalComment;
 import ru.practicum.shareit.exception.IllegalOwner;
 import ru.practicum.shareit.exception.NotFound;
+import ru.practicum.shareit.item.Comment;
+import ru.practicum.shareit.item.CommentMapper;
 import ru.practicum.shareit.item.Item;
 import ru.practicum.shareit.item.ItemMapper;
+import ru.practicum.shareit.item.dto.CommentCreateDto;
+import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemUpdateDto;
-import ru.practicum.shareit.item.dto.ItemWithBookingDto;
+import ru.practicum.shareit.item.dto.ItemWithBookingAndCommentsDto;
+import ru.practicum.shareit.item.storage.CommentRepository;
 import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.storage.UserRepository;
@@ -22,6 +29,7 @@ import ru.practicum.shareit.util.RepositoryUtil;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,8 +39,10 @@ public class ItemServiceImpl implements ItemService {
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
+    private final CommentRepository commentRepository;
     private final ItemMapper itemMapper;
     private final BookingMapper bookingMapper;
+    private final CommentMapper commentMapper;
 
     @Override
     public ItemDto create(Long ownerId, ItemDto itemDto) throws NotFound {
@@ -44,9 +54,10 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional(readOnly = true)
-    public ItemDto get(Long id) throws NotFound {
+    public ItemWithBookingAndCommentsDto get(Long id) throws NotFound {
         Item item = RepositoryUtil.getItemWithCheck(itemRepository, id);
-        return itemMapper.toItemDto(item);
+        return createItemWithBookingAndCommentsDtoList(List.of(item))
+                .getFirst();
     }
 
     @Override
@@ -94,7 +105,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ItemWithBookingDto> getByOwner(Long ownerId) throws NotFound {
+    public List<ItemWithBookingAndCommentsDto> getByOwner(Long ownerId) throws NotFound {
         RepositoryUtil.getUserWithCheck(userRepository, ownerId);
         List<Item> items = itemRepository.findAllByOwnerId(ownerId);
 
@@ -102,30 +113,61 @@ public class ItemServiceImpl implements ItemService {
             return List.of();
         }
 
+        return createItemWithBookingAndCommentsDtoList(items);
+    }
+
+    @Override
+    public CommentDto addComment(Long userId, Long itemId, CommentCreateDto commentCreateDto) {
+        User user = RepositoryUtil.getUserWithCheck(userRepository, userId);
+        Item item = RepositoryUtil.getItemWithCheck(itemRepository, itemId);
+
+        Optional<Booking> finishedBooking = bookingRepository.findFirstByBookerAndItemAndStatusAndEndBefore(
+                user,
+                item,
+                BookingStatus.APPROVED,
+                LocalDateTime.now()
+        );
+
+        if (finishedBooking.isEmpty()) {
+            throw new IllegalComment("Comment may be created only by user who booked this item");
+        }
+
+        Comment comment = commentMapper.fromCommentCreateDto(commentCreateDto, user, item);
+        commentRepository.save(comment);
+        return commentMapper.toCommentDto(comment);
+    }
+
+    private List<ItemWithBookingAndCommentsDto> createItemWithBookingAndCommentsDtoList(List<Item> items) {
         LocalDateTime now = LocalDateTime.now();
         List<Long> itemIds = items.stream()
                 .map(Item::getId)
                 .toList();
 
-        Map<Long, Booking> lastBookingsForItemsMap = bookingRepository
+        Map<Long, BookingOnlyDatesDto> lastBookingsForItemsMap = bookingRepository
                 .findAllLastBookingsForItems(now, itemIds)
                 .stream()
-                .collect(Collectors.toMap(booking -> booking.getItem().getId(), booking -> booking));
+                .collect(Collectors.toMap(booking -> booking.getItem().getId(), bookingMapper::toBookingOnlyDatesDto));
 
-        Map<Long, Booking> nearestNextBookingsForItemsMap = bookingRepository
+        Map<Long, BookingOnlyDatesDto> nearestNextBookingsForItemsMap = bookingRepository
                 .findAllNearestNextBookingsForItemsMap(now, itemIds)
                 .stream()
-                .collect(Collectors.toMap(booking -> booking.getItem().getId(), booking -> booking));
+                .collect(Collectors.toMap(booking -> booking.getItem().getId(), bookingMapper::toBookingOnlyDatesDto));
+
+        Map<Long, List<CommentDto>> commentsForItemsMap = commentRepository.findAllByItemIn(items)
+                .stream()
+                .collect(
+                        Collectors.groupingBy(
+                                comment -> comment.getItem().getId(),
+                                Collectors.mapping(commentMapper::toCommentDto, Collectors.toList())
+                        )
+                );
 
         return items.stream()
                 .map(item -> {
-                    BookingOnlyDatesDto lastBooking = lastBookingsForItemsMap.containsKey(item.getId())
-                            ? bookingMapper.toBookingOnlyDatesDto(lastBookingsForItemsMap.get(item.getId()))
-                            : null;
-                    BookingOnlyDatesDto nearestNextBooking = nearestNextBookingsForItemsMap.containsKey(item.getId())
-                            ? bookingMapper.toBookingOnlyDatesDto(nearestNextBookingsForItemsMap.get(item.getId()))
-                            : null;
-                    return itemMapper.toItemWithBookingDto(item, lastBooking, nearestNextBooking);
+                    BookingOnlyDatesDto lastBooking = lastBookingsForItemsMap.get(item.getId());
+                    BookingOnlyDatesDto nearestNextBooking = nearestNextBookingsForItemsMap.get(item.getId());
+                    List<CommentDto> comments = commentsForItemsMap.get(item.getId());
+                    return itemMapper.toItemWithBookingDto(item, lastBooking, nearestNextBooking, comments);
                 })
                 .toList();
     }

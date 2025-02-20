@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import ru.practicum.shareit.item.dto.CommentCreateDto;
+import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemUpdateDto;
-import ru.practicum.shareit.item.dto.ItemWithBookingDto;
+import ru.practicum.shareit.item.dto.ItemWithBookingAndCommentsDto;
 import ru.practicum.shareit.item.service.ItemService;
 
 import java.util.List;
@@ -41,14 +43,23 @@ public class ItemController {
         return itemService.update(userId, itemId, itemDto);
     }
 
+    @PostMapping("/{itemId}/comment")
+    public CommentDto addComment(@RequestHeader("X-Sharer-User-Id") long userId,
+                                 @Valid @RequestBody CommentCreateDto commentCreateDto,
+                                 @PathVariable Long itemId) {
+        log.info("Request from user {} to add comment for item with id" +
+                " {} with content: {}", userId, itemId, commentCreateDto);
+        return itemService.addComment(userId, itemId, commentCreateDto);
+    }
+
     @GetMapping("/{itemId}")
-    public ItemDto getItem(@PathVariable Long itemId) {
+    public ItemWithBookingAndCommentsDto getItem(@PathVariable Long itemId) {
         log.info("Request to get item {}", itemId);
         return itemService.get(itemId);
     }
 
     @GetMapping
-    public List<ItemWithBookingDto> getAllItemsByOwner(@RequestHeader("X-Sharer-User-Id") long userId) {
+    public List<ItemWithBookingAndCommentsDto> getAllItemsByOwner(@RequestHeader("X-Sharer-User-Id") long userId) {
         log.info("Request to get all items for user: {}", userId);
         return itemService.getByOwner(userId);
     }

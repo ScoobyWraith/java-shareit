@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.practicum.shareit.exception.BookingUnavailable;
 import ru.practicum.shareit.exception.EmailRepeated;
+import ru.practicum.shareit.exception.IllegalComment;
 import ru.practicum.shareit.exception.IllegalOwner;
 import ru.practicum.shareit.exception.NotFound;
 
@@ -28,6 +29,12 @@ public class Handler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleValidationException(final ValidationException e) {
         return new ErrorResponse("Validation exception", e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleIllegalComment(final IllegalComment e) {
+        return new ErrorResponse("Illegal comment", e.getMessage());
     }
 
     @ExceptionHandler
