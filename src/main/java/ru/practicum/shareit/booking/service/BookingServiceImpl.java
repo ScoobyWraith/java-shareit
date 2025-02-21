@@ -70,6 +70,10 @@ public class BookingServiceImpl implements BookingService {
             throw new BookingUnavailable("(Un)Approve booking can only the owner");
         }
 
+        if (!booking.getStatus().equals(BookingStatus.WAITING)) {
+            throw new BookingUnavailable("Only for booking with status WAITING can set APPROVED or REJECTED status");
+        }
+
         booking.setStatus(approved ? BookingStatus.APPROVED : BookingStatus.REJECTED);
         bookingRepository.save(booking);
         return buildBookingDto(booking);
@@ -79,18 +83,21 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public BookingDto getBooking(long userId, long bookingId) {
         Booking booking = getBookingWithCheck(bookingId);
+        User booker = booking.getBooker();
+        User itemOwner = booking.getItem().getOwner();
 
-        if (!booking.getBooker().getId().equals(userId) && !booking.getItem().getOwner().getId().equals(userId)) {
-            throw new IllegalOwner(String.format("User with id %d has no rights for" +
-                    " booking with id %d", userId, bookingId));
+        if (booker.getId().equals(userId) || itemOwner.getId().equals(userId)) {
+            return buildBookingDto(booking);
         }
 
-        return buildBookingDto(booking);
+        throw new IllegalOwner(String.format("User with id %d has no rights to watch" +
+                " booking with id %d", userId, bookingId));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<BookingDto> getAllBookingsWithState(long userId, BookingState state) {
+        RepositoryUtil.getUserWithCheck(userRepository, userId);
         BooleanExpression conditions = QBooking.booking.booker.id.eq(userId);
         Optional<BooleanExpression> additionalConditions = getBookingConditionsByState(state);
 
@@ -105,6 +112,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public List<BookingDto> getAllBookingsOfItemsForOwner(long ownerId, BookingState state) {
+        RepositoryUtil.getUserWithCheck(userRepository, ownerId);
         List<Item> userItems = itemRepository.findAllByOwnerId(ownerId);
 
         if (userItems.isEmpty()) {
