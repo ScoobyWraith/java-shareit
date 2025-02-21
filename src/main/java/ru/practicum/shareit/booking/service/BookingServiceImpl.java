@@ -22,6 +22,7 @@ import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.RepositoryUtil;
+import ru.practicum.shareit.util.Util;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -41,21 +42,30 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingDto createBooking(long userId, BookingCreateDto bookingCreateDto) {
+        LocalDateTime now = Util.getNowTruncatedToSeconds();
         User user = RepositoryUtil.getUserWithCheck(userRepository, userId);
         Item item = RepositoryUtil.getItemWithCheck(itemRepository, bookingCreateDto.getItemId());
         Booking booking = bookingMapper.fromBookingCreateDto(bookingCreateDto, item, user);
-        LocalDateTime now = LocalDateTime.now();
 
-        if (booking.getStart().isAfter(booking.getEnd())
-                || booking.getStart().isBefore(now)
-                || booking.getEnd().isBefore(now)
-        ) {
-            throw new BookingUnavailable("Incorrect data times of booking");
+        if (booking.getStart().isAfter(booking.getEnd())) {
+            throw new BookingUnavailable(String.format("Incorrect data times: " +
+                    "start date %s is after then end date %s", booking.getStart(), booking.getEnd()));
+        }
+
+        if (booking.getStart().isBefore(now)) {
+            throw new BookingUnavailable(String.format("Incorrect data times: " +
+                    "start date %s in past rel now %s", booking.getStart(), now));
+        }
+
+        if (booking.getEnd().isBefore(now)) {
+            throw new BookingUnavailable(String.format("Incorrect data times: " +
+                    "end date %s in past rel now %s", booking.getEnd(), now));
         }
 
         if (!item.getAvailable()) {
             throw new BookingUnavailable(String.format("Item with id %d is not available", item.getId()));
         }
+
         bookingRepository.save(booking);
         return buildBookingDto(booking);
     }
@@ -97,9 +107,10 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public List<BookingDto> getAllBookingsWithState(long userId, BookingState state) {
+        LocalDateTime now = Util.getNowTruncatedToSeconds();
         RepositoryUtil.getUserWithCheck(userRepository, userId);
         BooleanExpression conditions = QBooking.booking.booker.id.eq(userId);
-        Optional<BooleanExpression> additionalConditions = getBookingConditionsByState(state);
+        Optional<BooleanExpression> additionalConditions = getBookingConditionsByState(now, state);
 
         if (additionalConditions.isPresent()) {
             conditions = conditions.and(additionalConditions.get());
@@ -112,6 +123,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public List<BookingDto> getAllBookingsOfItemsForOwner(long ownerId, BookingState state) {
+        LocalDateTime now = Util.getNowTruncatedToSeconds();
         RepositoryUtil.getUserWithCheck(userRepository, ownerId);
         List<Item> userItems = itemRepository.findAllByOwnerId(ownerId);
 
@@ -120,7 +132,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         BooleanExpression conditions = QBooking.booking.item.in(userItems);
-        Optional<BooleanExpression> additionalConditions = getBookingConditionsByState(state);
+        Optional<BooleanExpression> additionalConditions = getBookingConditionsByState(now, state);
 
         if (additionalConditions.isPresent()) {
             conditions = conditions.and(additionalConditions.get());
@@ -149,8 +161,7 @@ public class BookingServiceImpl implements BookingService {
         return result;
     }
 
-    private Optional<BooleanExpression> getBookingConditionsByState(BookingState state) {
-        LocalDateTime now = LocalDateTime.now();
+    private Optional<BooleanExpression> getBookingConditionsByState(LocalDateTime now, BookingState state) {
         BooleanExpression dateTimeExpression;
         BooleanExpression statusExpression;
         QBooking qBooking = QBooking.booking;

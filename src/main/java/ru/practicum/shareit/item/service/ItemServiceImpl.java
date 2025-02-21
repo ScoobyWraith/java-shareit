@@ -25,6 +25,7 @@ import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.RepositoryUtil;
+import ru.practicum.shareit.util.Util;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -55,8 +56,9 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional(readOnly = true)
     public ItemWithBookingAndCommentsDto get(Long id) throws NotFound {
+        LocalDateTime now = Util.getNowTruncatedToSeconds();
         Item item = RepositoryUtil.getItemWithCheck(itemRepository, id);
-        return createItemWithBookingAndCommentsDtoList(List.of(item))
+        return createItemWithBookingAndCommentsDtoList(now, List.of(item))
                 .getFirst();
     }
 
@@ -106,6 +108,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional(readOnly = true)
     public List<ItemWithBookingAndCommentsDto> getByOwner(Long ownerId) throws NotFound {
+        LocalDateTime now = Util.getNowTruncatedToSeconds();
         RepositoryUtil.getUserWithCheck(userRepository, ownerId);
         List<Item> items = itemRepository.findAllByOwnerId(ownerId);
 
@@ -113,14 +116,14 @@ public class ItemServiceImpl implements ItemService {
             return List.of();
         }
 
-        return createItemWithBookingAndCommentsDtoList(items);
+        return createItemWithBookingAndCommentsDtoList(now, items);
     }
 
     @Override
     public CommentDto addComment(Long userId, Long itemId, CommentCreateDto commentCreateDto) {
+        LocalDateTime now = Util.getNowTruncatedToSeconds();
         User user = RepositoryUtil.getUserWithCheck(userRepository, userId);
         Item item = RepositoryUtil.getItemWithCheck(itemRepository, itemId);
-        LocalDateTime now = LocalDateTime.now();
 
         Optional<Booking> startedBooking = bookingRepository.findFirstByBookerAndItemAndStatusAndStartBefore(
                 user,
@@ -138,8 +141,8 @@ public class ItemServiceImpl implements ItemService {
         return commentMapper.toCommentDto(comment);
     }
 
-    private List<ItemWithBookingAndCommentsDto> createItemWithBookingAndCommentsDtoList(List<Item> items) {
-        LocalDateTime now = LocalDateTime.now();
+    private List<ItemWithBookingAndCommentsDto> createItemWithBookingAndCommentsDtoList(LocalDateTime now,
+                                                                                        List<Item> items) {
         List<Long> itemIds = items.stream()
                 .map(Item::getId)
                 .toList();
