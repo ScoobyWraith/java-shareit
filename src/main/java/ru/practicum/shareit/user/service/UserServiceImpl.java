@@ -2,62 +2,55 @@ package ru.practicum.shareit.user.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.exception.EmailRepeated;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFound;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.dto.UserCreateDto;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.storage.UserStorage;
+import ru.practicum.shareit.user.storage.UserRepository;
+import ru.practicum.shareit.util.RepositoryUtil;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class UserServiceImpl implements UserService {
-    private final UserStorage userStorage;
+    private final UserRepository userRepository;
     private final UserMapper userMapper;
 
     @Override
     public UserDto create(UserCreateDto userCreateDto) {
         User user = userMapper.fromUserCreateDto(userCreateDto);
-        checkEmailRepeat(user);
-        return userMapper.toUserDto(userStorage.create(user));
+        return userMapper.toUserDto(userRepository.save(user));
     }
 
+
     @Override
+    @Transactional(readOnly = true)
     public UserDto get(Long id) {
-        return userMapper.toUserDto(userStorage.getById(id));
+        User user = RepositoryUtil.getUserWithCheck(userRepository, id);
+        return userMapper.toUserDto(user);
     }
 
     @Override
     public UserDto update(UserDto userDto, Long userId) throws NotFound {
-        User user = userStorage.getById(userId);
+        User user = RepositoryUtil.getUserWithCheck(userRepository, userId);
 
         if (userDto.getEmail() != null) {
             user.setEmail(userDto.getEmail());
-            checkEmailRepeat(user);
         }
 
         if (userDto.getName() != null) {
             user.setName(userDto.getName());
         }
 
-        return userMapper.toUserDto(userStorage.update(user));
+        return userMapper.toUserDto(userRepository.save(user));
     }
 
     @Override
     public UserDto delete(Long id) throws NotFound {
-        User user = userStorage.getById(id);
-        userStorage.deleteById(id);
+        User user = RepositoryUtil.getUserWithCheck(userRepository, id);
+        userRepository.deleteById(id);
         return userMapper.toUserDto(user);
-    }
-
-    private void checkEmailRepeat(User user) {
-        try {
-            User presentedUser = userStorage.getByEmail(user.getEmail());
-
-            if (!presentedUser.getId().equals(user.getId())) {
-                throw new EmailRepeated("Field email must be unique");
-            }
-        } catch (NotFound ignored) { }
     }
 }
