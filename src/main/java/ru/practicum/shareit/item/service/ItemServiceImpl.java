@@ -2,43 +2,71 @@ package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.booking.Booking;
+import ru.practicum.shareit.booking.BookingMapper;
+import ru.practicum.shareit.booking.BookingStatus;
+import ru.practicum.shareit.booking.dto.BookingOnlyDatesDto;
+import ru.practicum.shareit.booking.storage.BookingRepository;
+import ru.practicum.shareit.exception.IllegalComment;
 import ru.practicum.shareit.exception.IllegalOwner;
 import ru.practicum.shareit.exception.NotFound;
+import ru.practicum.shareit.item.Comment;
+import ru.practicum.shareit.item.CommentMapper;
 import ru.practicum.shareit.item.Item;
 import ru.practicum.shareit.item.ItemMapper;
+import ru.practicum.shareit.item.dto.CommentCreateDto;
+import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemUpdateDto;
-import ru.practicum.shareit.item.storage.ItemStorage;
+import ru.practicum.shareit.item.dto.ItemWithBookingAndCommentsDto;
+import ru.practicum.shareit.item.storage.CommentRepository;
+import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.user.User;
-import ru.practicum.shareit.user.storage.UserStorage;
+import ru.practicum.shareit.user.storage.UserRepository;
+import ru.practicum.shareit.util.RepositoryUtil;
+import ru.practicum.shareit.util.Util;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ItemServiceImpl implements ItemService {
-    private final ItemStorage itemStorage;
-    private final UserStorage userStorage;
+    private final ItemRepository itemRepository;
+    private final UserRepository userRepository;
+    private final BookingRepository bookingRepository;
+    private final CommentRepository commentRepository;
     private final ItemMapper itemMapper;
+    private final BookingMapper bookingMapper;
+    private final CommentMapper commentMapper;
 
     @Override
     public ItemDto create(Long ownerId, ItemDto itemDto) throws NotFound {
-        User user = userStorage.getById(ownerId);
+        User user = RepositoryUtil.getUserWithCheck(userRepository, ownerId);
         Item item = itemMapper.fromItemDto(itemDto);
         item.setOwner(user);
-        return itemMapper.toItemDto(itemStorage.create(item));
+        return itemMapper.toItemDto(itemRepository.save(item));
     }
 
     @Override
-    public ItemDto get(Long id) throws NotFound {
-        return itemMapper.toItemDto(itemStorage.getById(id));
+    @Transactional(readOnly = true)
+    public ItemWithBookingAndCommentsDto get(Long id) throws NotFound {
+        LocalDateTime now = Util.getNowTruncatedToSeconds();
+        Item item = RepositoryUtil.getItemWithCheck(itemRepository, id);
+        return createItemWithBookingAndCommentsDtoList(now, List.of(item))
+                .getFirst();
     }
 
     @Override
     public ItemDto update(Long ownerId, Long itemId, ItemUpdateDto updatedItem) throws NotFound, IllegalOwner {
-        User user = userStorage.getById(ownerId);
-        Item item = itemStorage.getById(itemId);
-        checkOwnerRights(item, user);
+        User user = RepositoryUtil.getUserWithCheck(userRepository, ownerId);
+        Item item = RepositoryUtil.getItemWithCheck(itemRepository, itemId);
+        RepositoryUtil.checkOwnerRightsForItem(item, user);
 
         if (updatedItem.getName() != null) {
             item.setName(updatedItem.getName());
@@ -52,42 +80,99 @@ public class ItemServiceImpl implements ItemService {
             item.setAvailable(updatedItem.getAvailable());
         }
 
-        return itemMapper.toItemDto(itemStorage.update(item));
+        return itemMapper.toItemDto(itemRepository.save(item));
     }
 
     @Override
     public ItemDto delete(Long ownerId, Long itemId) throws NotFound, IllegalOwner {
-        User user = userStorage.getById(ownerId);
-        Item item = itemStorage.getById(itemId);
-        checkOwnerRights(item, user);
-        itemStorage.deleteById(itemId);
+        User user = RepositoryUtil.getUserWithCheck(userRepository, ownerId);
+        Item item = RepositoryUtil.getItemWithCheck(itemRepository, itemId);
+        RepositoryUtil.checkOwnerRightsForItem(item, user);
+        itemRepository.deleteById(itemId);
         return itemMapper.toItemDto(item);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ItemDto> search(String searchText) {
         if (searchText == null || searchText.isBlank()) {
             return List.of();
         }
 
-        return itemStorage.search(searchText)
+        return itemRepository.search(searchText)
                 .stream()
                 .map(itemMapper::toItemDto)
                 .toList();
     }
 
     @Override
-    public List<ItemDto> getByOwner(Long ownerId) throws NotFound {
-        userStorage.getById(ownerId);
-        return itemStorage.getByOwner(ownerId)
-                .stream()
-                .map(itemMapper::toItemDto)
-                .toList();
+    @Transactional(readOnly = true)
+    public List<ItemWithBookingAndCommentsDto> getByOwner(Long ownerId) throws NotFound {
+        LocalDateTime now = Util.getNowTruncatedToSeconds();
+        RepositoryUtil.getUserWithCheck(userRepository, ownerId);
+        List<Item> items = itemRepository.findAllByOwnerId(ownerId);
+
+        if (items.isEmpty()) {
+            return List.of();
+        }
+
+        return createItemWithBookingAndCommentsDtoList(now, items);
     }
 
-    private void checkOwnerRights(Item item, User user) {
-        if (!item.getOwner().getId().equals(user.getId())) {
-            throw new IllegalOwner(String.format("User %d has not rights for item %d", user.getId(), item.getId()));
+    @Override
+    public CommentDto addComment(Long userId, Long itemId, CommentCreateDto commentCreateDto) {
+        LocalDateTime now = Util.getNowTruncatedToSeconds();
+        User user = RepositoryUtil.getUserWithCheck(userRepository, userId);
+        Item item = RepositoryUtil.getItemWithCheck(itemRepository, itemId);
+
+        Optional<Booking> startedBooking = bookingRepository.findFirstByBookerAndItemAndStatusAndStartBefore(
+                user,
+                item,
+                BookingStatus.APPROVED,
+                now
+        );
+
+        if (startedBooking.isEmpty()) {
+            throw new IllegalComment("Comment may be created only by user who booked this item");
         }
+
+        Comment comment = commentMapper.fromCommentCreateDto(commentCreateDto, user, item);
+        commentRepository.save(comment);
+        return commentMapper.toCommentDto(comment);
+    }
+
+    private List<ItemWithBookingAndCommentsDto> createItemWithBookingAndCommentsDtoList(LocalDateTime now,
+                                                                                        List<Item> items) {
+        List<Long> itemIds = items.stream()
+                .map(Item::getId)
+                .toList();
+
+        Map<Long, BookingOnlyDatesDto> lastBookingsForItemsMap = bookingRepository
+                .findAllLastBookingsForItems(now, itemIds)
+                .stream()
+                .collect(Collectors.toMap(booking -> booking.getItem().getId(), bookingMapper::toBookingOnlyDatesDto));
+
+        Map<Long, BookingOnlyDatesDto> nearestNextBookingsForItemsMap = bookingRepository
+                .findAllNearestNextBookingsForItemsMap(now, itemIds)
+                .stream()
+                .collect(Collectors.toMap(booking -> booking.getItem().getId(), bookingMapper::toBookingOnlyDatesDto));
+
+        Map<Long, List<CommentDto>> commentsForItemsMap = commentRepository.findAllByItemIn(items)
+                .stream()
+                .collect(
+                        Collectors.groupingBy(
+                                comment -> comment.getItem().getId(),
+                                Collectors.mapping(commentMapper::toCommentDto, Collectors.toList())
+                        )
+                );
+
+        return items.stream()
+                .map(item -> {
+                    BookingOnlyDatesDto lastBooking = lastBookingsForItemsMap.get(item.getId());
+                    BookingOnlyDatesDto nearestNextBooking = nearestNextBookingsForItemsMap.get(item.getId());
+                    List<CommentDto> comments = commentsForItemsMap.get(item.getId());
+                    return itemMapper.toItemWithBookingDto(item, lastBooking, nearestNextBooking, comments);
+                })
+                .toList();
     }
 }
