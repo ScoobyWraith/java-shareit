@@ -17,7 +17,7 @@ spring:
 logging:
   level:
     org.springframework:
-      orm.jpa: INFO
-      orm.jpa.JpaTransactionManager: DEBUG
-      transaction: INFO
-      transaction.interceptor: TRACE
+      orm.jpa: WARN
+      orm.jpa.JpaTransactionManager: WARN
+      transaction: WARN
+      transaction.interceptor: WARN
