@@ -7,8 +7,7 @@ import lombok.Data;
 @Data
 @Builder(toBuilder = true)
 @AllArgsConstructor
-public class ItemDto {
-    private Long id;
+public class ItemUpdateDto {
     private String name;
     private String description;
     private Boolean available;

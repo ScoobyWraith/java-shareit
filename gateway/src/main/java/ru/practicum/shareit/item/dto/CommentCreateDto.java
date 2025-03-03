@@ -1,15 +1,16 @@
 package ru.practicum.shareit.item.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder(toBuilder = true)
 @AllArgsConstructor
-public class ItemDto {
-    private Long id;
-    private String name;
-    private String description;
-    private Boolean available;
+@NoArgsConstructor
+public class CommentCreateDto {
+    @NotBlank
+    private String text;
 }
