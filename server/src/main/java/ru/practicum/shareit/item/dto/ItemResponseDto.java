@@ -7,10 +7,8 @@ import lombok.Data;
 @Data
 @Builder(toBuilder = true)
 @AllArgsConstructor
-public class ItemDto {
+public class ItemResponseDto {
     private Long id;
+    private Long ownerId;
     private String name;
-    private String description;
-    private Boolean available;
-    private Long requestId;
 }

@@ -4,6 +4,8 @@ import ru.practicum.shareit.exception.IllegalOwner;
 import ru.practicum.shareit.exception.NotFound;
 import ru.practicum.shareit.item.Item;
 import ru.practicum.shareit.item.storage.ItemRepository;
+import ru.practicum.shareit.request.ItemRequest;
+import ru.practicum.shareit.request.storage.ItemRequestRepository;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.storage.UserRepository;
 
@@ -22,5 +24,10 @@ public class RepositoryUtil {
         if (!item.getOwner().getId().equals(user.getId())) {
             throw new IllegalOwner(String.format("User %d has not rights for item %d", user.getId(), item.getId()));
         }
+    }
+
+    public static ItemRequest getItemRequestWithCheck(ItemRequestRepository itemRequestRepository, Long id) {
+        return itemRequestRepository.findById(id)
+                .orElseThrow(() -> new NotFound(String.format("Item request with id %d not found.", id)));
     }
 }
