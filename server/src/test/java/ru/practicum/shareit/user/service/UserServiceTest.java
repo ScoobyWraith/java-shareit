@@ -17,9 +17,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 @Transactional
-@SpringBootTest(
-        properties = "jdbc.url=jdbc:postgresql://localhost:5432/test",
-        webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 class UserServiceTest {
     private final UserService userService;
