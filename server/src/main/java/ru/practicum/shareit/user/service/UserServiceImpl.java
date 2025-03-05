@@ -24,7 +24,6 @@ public class UserServiceImpl implements UserService {
         return userMapper.toUserDto(userRepository.save(user));
     }
 
-
     @Override
     @Transactional(readOnly = true)
     public UserDto get(Long id) {
