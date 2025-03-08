@@ -1,5 +1,6 @@
 package ru.practicum.shareit.booking.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import ru.practicum.shareit.booking.BookingStatus;
@@ -8,6 +9,7 @@ import ru.practicum.shareit.user.dto.UserDto;
 
 @Data
 @Builder(toBuilder = true)
+@AllArgsConstructor
 public class BookingDto {
     private Long id;
     private String start;
