@@ -162,7 +162,7 @@ public class ItemServiceImpl implements ItemService {
                 .collect(Collectors.toMap(booking -> booking.getItem().getId(), bookingMapper::toBookingOnlyDatesDto));
 
         Map<Long, BookingOnlyDatesDto> nearestNextBookingsForItemsMap = bookingRepository
-                .findAllNearestNextBookingsForItemsMap(now, itemIds)
+                .findAllNearestNextBookingsForItems(now, itemIds)
                 .stream()
                 .collect(Collectors.toMap(booking -> booking.getItem().getId(), bookingMapper::toBookingOnlyDatesDto));
 

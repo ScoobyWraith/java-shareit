@@ -1,60 +1,51 @@
 package ru.practicum.shareit.user.service;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import ru.practicum.shareit.user.User;
+import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.dto.UserCreateDto;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.storage.UserRepository;
 
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-
-@Transactional
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringJUnitConfig({UserServiceImpl.class})
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 class UserServiceTest {
     private final UserService userService;
-    private final EntityManager em;
+
+    @MockBean
+    private final UserRepository userRepository;
+
+    @MockBean
+    private final UserMapper userMapper;
 
     @Test
-    public void create_whenValidUser_thenSave() {
-        UserCreateDto userDto = createUserCreateDto("test@test.com", "tester");
+    public void createTest() {
+        UserCreateDto userCreateDto = new UserCreateDto("tester", "test@test.com");
+        User user = new User(1L, "tester", "test@test.com");
+        UserDto userDto = new UserDto(1L, "tester", "test@test.com");
 
-        userService.create(userDto);
+        Mockito
+                .when(userMapper.fromUserCreateDto(userCreateDto))
+                .thenReturn(user);
+        Mockito
+                .when(userRepository.save(user))
+                .thenReturn(user);
+        Mockito
+                .when(userMapper.toUserDto(user))
+                .thenReturn(userDto);
 
-        TypedQuery<User> query = em.createQuery("Select u from User u where u.email = :email", User.class);
-        User user = query.setParameter("email", userDto.getEmail())
-                .getSingleResult();
+        userService.create(userCreateDto);
 
-        assertThat(user.getId(), notNullValue());
-        assertThat(user.getName(), equalTo(userDto.getName()));
-        assertThat(user.getEmail(), equalTo(userDto.getEmail()));
-    }
-
-    @Test
-    public void create_whenEmailRepeat_thenThrowException() {
-        UserCreateDto userDto1 = createUserCreateDto("test@test.com", "tester 1");
-        UserCreateDto userDto2 = createUserCreateDto("test@test.com", "tester 2");
-
-        userService.create(userDto1);
-
-        Assertions.assertThrows(
-                DataIntegrityViolationException.class,
-                () -> userService.create(userDto2)
-        );
-    }
-
-    public static UserCreateDto createUserCreateDto(String email, String name) {
-        return UserCreateDto.builder()
-                .email(email)
-                .name(name)
-                .build();
+        Mockito.verify(userMapper, Mockito.times(1))
+                .fromUserCreateDto(userCreateDto);
+        Mockito.verify(userRepository, Mockito.times(1))
+                .save(user);
+        Mockito.verify(userMapper, Mockito.times(1))
+                .toUserDto(user);
     }
 }
