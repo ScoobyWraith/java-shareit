@@ -108,8 +108,10 @@ class ItemRequestControllerTest {
                         .characterEncoding(StandardCharsets.UTF_8)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()", is(2L), Long.class));
+                .andExpect(jsonPath("$.id", is(itemRequestDto.getId()), Long.class))
+                .andExpect(jsonPath("$.description", is(itemRequestDto.getDescription())))
+                .andExpect(jsonPath("$.created", is(itemRequestDto.getCreated().toString())));
         Mockito.verify(itemRequestService, Mockito.times(1))
-                .getAllRequests(2L);
+                .getRequestById(2L);
     }
 }

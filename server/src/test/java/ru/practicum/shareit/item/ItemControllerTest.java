@@ -10,6 +10,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import ru.practicum.shareit.exception.IllegalComment;
+import ru.practicum.shareit.exception.IllegalOwner;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemWithBookingAndCommentsDto;
@@ -109,6 +111,25 @@ class ItemControllerTest {
     }
 
     @Test
+    void updateItem_throwIllegalOwner() throws Exception {
+        Mockito
+                .when(itemService.update(ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong(), ArgumentMatchers.any()))
+                .thenThrow(new IllegalOwner("owner"));
+
+        mvc.perform(patch(API_PREFIX + "/1")
+                        .content(mapper.writeValueAsString(itemDto))
+                        .header("X-Sharer-User-Id", 1L)
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error", is("Access deny")))
+                .andExpect(jsonPath("$.description", is("owner")));
+        Mockito.verify(itemService, Mockito.times(1))
+                .update(ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong(), ArgumentMatchers.any());
+    }
+
+    @Test
     void addCommentTest() throws Exception {
         Mockito
                 .when(itemService.addComment(ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong(), ArgumentMatchers.any()))
@@ -125,6 +146,25 @@ class ItemControllerTest {
                 .andExpect(jsonPath("$.created", is(commentDto.getCreated())))
                 .andExpect(jsonPath("$.authorName", is(commentDto.getAuthorName())))
                 .andExpect(jsonPath("$.text", is(commentDto.getText())));
+        Mockito.verify(itemService, Mockito.times(1))
+                .addComment(ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong(), ArgumentMatchers.any());
+    }
+
+    @Test
+    void addComment_throwIllegalComment() throws Exception {
+        Mockito
+                .when(itemService.addComment(ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong(), ArgumentMatchers.any()))
+                .thenThrow(new IllegalComment("comment 1"));
+
+        mvc.perform(post(API_PREFIX + "/1/comment")
+                        .content(mapper.writeValueAsString(itemDto))
+                        .header("X-Sharer-User-Id", 1L)
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", is("Illegal comment")))
+                .andExpect(jsonPath("$.description", is("comment 1")));
         Mockito.verify(itemService, Mockito.times(1))
                 .addComment(ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong(), ArgumentMatchers.any());
     }

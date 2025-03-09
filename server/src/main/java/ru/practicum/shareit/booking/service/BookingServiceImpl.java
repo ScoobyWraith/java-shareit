@@ -57,11 +57,6 @@ public class BookingServiceImpl implements BookingService {
                     "start date %s in past rel now %s", booking.getStart(), now));
         }
 
-        if (booking.getEnd().isBefore(now)) {
-            throw new BookingUnavailable(String.format("Incorrect data times: " +
-                    "end date %s in past rel now %s", booking.getEnd(), now));
-        }
-
         if (!item.getAvailable()) {
             throw new BookingUnavailable(String.format("Item with id %d is not available", item.getId()));
         }

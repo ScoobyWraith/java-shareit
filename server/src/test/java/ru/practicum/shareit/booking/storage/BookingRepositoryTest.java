@@ -51,7 +51,7 @@ class BookingRepositoryTest {
         bookingInPast1 = bookingRepository.save(new Booking(
                 null,
                 origin.minusDays(10),
-                origin.minusDays(8),
+                origin.plusDays(1),
                 items.get(0),
                 booker,
                 BookingStatus.APPROVED
@@ -59,7 +59,7 @@ class BookingRepositoryTest {
         bookingInPast2 = bookingRepository.save(new Booking(
                 null,
                 origin.minusDays(5),
-                origin.minusDays(3),
+                origin.plusDays(1),
                 items.get(1),
                 booker,
                 BookingStatus.APPROVED

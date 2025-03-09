@@ -20,12 +20,4 @@ public class UserMapper {
                 .email(userCreateDto.getEmail())
                 .build();
     }
-
-    public User fromUserDto(UserDto userDto) {
-        return User.builder()
-                .id(userDto.getId())
-                .name(userDto.getName())
-                .email(userDto.getEmail())
-                .build();
-    }
 }

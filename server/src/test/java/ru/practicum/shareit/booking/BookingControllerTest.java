@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.service.BookingService;
+import ru.practicum.shareit.exception.BookingUnavailable;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.user.dto.UserDto;
 
@@ -69,6 +70,25 @@ class BookingControllerTest {
                 .andExpect(jsonPath("$.status", is(bookingDto.getStatus().toString())))
                 .andExpect(jsonPath("$.end", is(bookingDto.getEnd())))
                 .andExpect(jsonPath("$.start", is(bookingDto.getStart())));
+        Mockito.verify(bookingService, Mockito.times(1))
+                .createBooking(ArgumentMatchers.anyLong(), ArgumentMatchers.any());
+    }
+
+    @Test
+    void createBooking_throwBookingUnavailable() throws Exception {
+        Mockito
+                .when(bookingService.createBooking(ArgumentMatchers.anyLong(), ArgumentMatchers.any()))
+                .thenThrow(new BookingUnavailable("booking"));
+
+        mvc.perform(post(API_PREFIX)
+                        .content(mapper.writeValueAsString(bookingDto))
+                        .header("X-Sharer-User-Id", 1L)
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", is("Unavailable booking")))
+                .andExpect(jsonPath("$.description", is("booking")));
         Mockito.verify(bookingService, Mockito.times(1))
                 .createBooking(ArgumentMatchers.anyLong(), ArgumentMatchers.any());
     }

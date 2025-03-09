@@ -60,6 +60,22 @@ class UserControllerTest {
     }
 
     @Test
+    void createUser_throwAnyException() throws Exception {
+        Mockito
+                .when(userService.create(ArgumentMatchers.any()))
+                .thenThrow(new RuntimeException("runtime exception"));
+
+        mvc.perform(post(API_PREFIX)
+                        .content(mapper.writeValueAsString(userCreateDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error", is("Exception")))
+                .andExpect(jsonPath("$.description", is("runtime exception")));
+    }
+
+    @Test
     void getUserTest() throws Exception {
         Mockito
                 .when(userService.get(1L))

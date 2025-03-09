@@ -5,9 +5,7 @@ import ru.practicum.shareit.booking.dto.BookingOnlyDatesDto;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemResponseDto;
-import ru.practicum.shareit.item.dto.ItemUpdateDto;
 import ru.practicum.shareit.item.dto.ItemWithBookingAndCommentsDto;
-import ru.practicum.shareit.item.dto.ItemWithCommentsDto;
 import ru.practicum.shareit.request.ItemRequest;
 
 import java.util.List;
@@ -23,16 +21,6 @@ public class ItemMapper {
                 .build();
     }
 
-    public ItemWithCommentsDto toItemWithCommentsDto(Item item, List<CommentDto> comments) {
-        return ItemWithCommentsDto.builder()
-                .id(item.getId())
-                .name(item.getName())
-                .description(item.getDescription())
-                .available(item.getAvailable())
-                .comments(comments)
-                .build();
-    }
-
     public Item fromItemDto(ItemDto itemDto, ItemRequest itemRequest) {
         return Item.builder()
                 .id(itemDto.getId())
@@ -40,14 +28,6 @@ public class ItemMapper {
                 .description(itemDto.getDescription())
                 .available(itemDto.getAvailable())
                 .request(itemRequest)
-                .build();
-    }
-
-    public Item fromItemUpdateDto(ItemUpdateDto itemDto) {
-        return Item.builder()
-                .name(itemDto.getName())
-                .description(itemDto.getDescription())
-                .available(itemDto.getAvailable())
                 .build();
     }
 
