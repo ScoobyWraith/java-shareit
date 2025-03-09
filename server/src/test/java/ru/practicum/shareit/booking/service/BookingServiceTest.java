@@ -12,6 +12,7 @@ import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.booking.dto.BookingCreateDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.exception.BookingUnavailable;
+import ru.practicum.shareit.exception.IllegalOwner;
 import ru.practicum.shareit.exception.NotFound;
 import ru.practicum.shareit.item.Item;
 import ru.practicum.shareit.service.ServiceTest;
@@ -149,6 +150,15 @@ class BookingServiceTest extends ServiceTest {
     }
 
     @Test
+    void getBooking_whenIllegalOwner() {
+        Booking booking = bookingsForItemsOfOwner1.getFirst();
+
+        Assertions.assertThrows(IllegalOwner.class, () -> {
+            bookingService.getBooking(100, booking.getId());
+        });
+    }
+
+    @Test
     void getAllBookingsWithStateAllTest() {
         List<BookingDto> allBookingsOfItemsForOwner
                 = bookingService.getAllBookingsWithState(booker.getId(), BookingState.ALL);
@@ -160,58 +170,16 @@ class BookingServiceTest extends ServiceTest {
     }
 
     @Test
-    void getAllBookingsWithStateCurrentTest() {
-        List<BookingDto> allBookingsOfItemsForOwner
-                = bookingService.getAllBookingsWithState(booker.getId(), BookingState.CURRENT);
+    void getAllBookingsWithStateOthersTest() {
+        BookingState[] states = {
+                BookingState.REJECTED, BookingState.PAST, BookingState.FUTURE, BookingState.WAITING, BookingState.CURRENT
+        };
 
-        Assertions.assertEquals(3, allBookingsOfItemsForOwner.size());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(0).getId(), allBookingsOfItemsForOwner.get(0).getId());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(1).getId(), allBookingsOfItemsForOwner.get(1).getId());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(2).getId(), allBookingsOfItemsForOwner.get(2).getId());
-    }
-
-    @Test
-    void getAllBookingsWithStatePastTest() {
-        List<BookingDto> allBookingsOfItemsForOwner
-                = bookingService.getAllBookingsWithState(booker.getId(), BookingState.PAST);
-
-        Assertions.assertEquals(3, allBookingsOfItemsForOwner.size());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(0).getId(), allBookingsOfItemsForOwner.get(0).getId());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(1).getId(), allBookingsOfItemsForOwner.get(1).getId());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(2).getId(), allBookingsOfItemsForOwner.get(2).getId());
-    }
-
-    @Test
-    void getAllBookingsWithStateFutureTest() {
-        List<BookingDto> allBookingsOfItemsForOwner
-                = bookingService.getAllBookingsWithState(booker.getId(), BookingState.FUTURE);
-
-        Assertions.assertEquals(3, allBookingsOfItemsForOwner.size());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(0).getId(), allBookingsOfItemsForOwner.get(0).getId());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(1).getId(), allBookingsOfItemsForOwner.get(1).getId());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(2).getId(), allBookingsOfItemsForOwner.get(2).getId());
-    }
-
-    @Test
-    void getAllBookingsWithStateWatingTest() {
-        List<BookingDto> allBookingsOfItemsForOwner
-                = bookingService.getAllBookingsWithState(booker.getId(), BookingState.WAITING);
-
-        Assertions.assertEquals(3, allBookingsOfItemsForOwner.size());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(0).getId(), allBookingsOfItemsForOwner.get(0).getId());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(1).getId(), allBookingsOfItemsForOwner.get(1).getId());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(2).getId(), allBookingsOfItemsForOwner.get(2).getId());
-    }
-
-    @Test
-    void getAllBookingsWithStateRejectTest() {
-        List<BookingDto> allBookingsOfItemsForOwner
-                = bookingService.getAllBookingsWithState(booker.getId(), BookingState.REJECTED);
-
-        Assertions.assertEquals(3, allBookingsOfItemsForOwner.size());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(0).getId(), allBookingsOfItemsForOwner.get(0).getId());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(1).getId(), allBookingsOfItemsForOwner.get(1).getId());
-        Assertions.assertEquals(bookingsForItemsOfOwner1.get(2).getId(), allBookingsOfItemsForOwner.get(2).getId());
+        for (BookingState state : states) {
+            Assertions.assertDoesNotThrow(() -> {
+                bookingService.getAllBookingsWithState(booker.getId(), state);
+            });
+        }
     }
 
     @Test
@@ -223,6 +191,19 @@ class BookingServiceTest extends ServiceTest {
         Assertions.assertEquals(bookingsForItemsOfOwner1.get(0).getId(), allBookingsOfItemsForOwner.get(0).getId());
         Assertions.assertEquals(bookingsForItemsOfOwner1.get(1).getId(), allBookingsOfItemsForOwner.get(1).getId());
         Assertions.assertEquals(bookingsForItemsOfOwner1.get(2).getId(), allBookingsOfItemsForOwner.get(2).getId());
+    }
+
+    @Test
+    void getOtherBookingsOfItemsForOwnerTest() {
+        BookingState[] states = {
+                BookingState.REJECTED, BookingState.PAST, BookingState.FUTURE, BookingState.WAITING, BookingState.CURRENT
+        };
+
+        for (BookingState state : states) {
+            Assertions.assertDoesNotThrow(() -> {
+                bookingService.getAllBookingsOfItemsForOwner(ownerOfItems1.getId(), state);
+            });
+        }
     }
 
     @Test

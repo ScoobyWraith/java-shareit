@@ -41,6 +41,16 @@ class ItemRequestServiceTest extends ServiceTest {
     }
 
     @Test
+    void getRequestsForOwner_whenEmptyList() {
+        when(itemRequestRepository.findAllByRequestorIsOrderByCreatedDesc(ArgumentMatchers.any()))
+                .thenReturn(List.of());
+
+        List<ItemRequestDto> requestsForOwner = itemRequestService.getRequestsForOwner(requestor.getId());
+
+        Assertions.assertEquals(0, requestsForOwner.size());
+    }
+
+    @Test
     void getAllRequestsTest() {
         when(itemRequestRepository.findAllByRequestorNotOrderByCreatedDesc(ArgumentMatchers.any()))
                 .thenReturn(List.of(itemRequest));
@@ -50,6 +60,17 @@ class ItemRequestServiceTest extends ServiceTest {
 
         Assertions.assertEquals(1, requestsForOwner.size());
         Assertions.assertEquals(item.getId(), requestsForOwner.getFirst().getItems().getFirst().getId());
+    }
+
+    @Test
+    void getAllRequests_whenEmptyList() {
+        when(itemRequestRepository.findAllByRequestorNotOrderByCreatedDesc(ArgumentMatchers.any()))
+                .thenReturn(List.of());
+        Item item = itemsOfOwner2.getLast();
+
+        List<ItemRequestDto> requestsForOwner = itemRequestService.getAllRequests(requestor.getId());
+
+        Assertions.assertEquals(0, requestsForOwner.size());
     }
 
     @Test
