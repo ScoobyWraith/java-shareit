@@ -1,51 +1,57 @@
 package ru.practicum.shareit.user.service;
 
-import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import ru.practicum.shareit.user.User;
-import ru.practicum.shareit.user.UserMapper;
+import ru.practicum.shareit.service.ServiceTest;
 import ru.practicum.shareit.user.dto.UserCreateDto;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.storage.UserRepository;
 
+@Nested
 @SpringJUnitConfig({UserServiceImpl.class})
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
-class UserServiceTest {
-    private final UserService userService;
-
-    @MockBean
-    private final UserRepository userRepository;
-
-    @MockBean
-    private final UserMapper userMapper;
+class UserServiceTest extends ServiceTest {
+    @Autowired
+    private UserService userService;
 
     @Test
-    public void createTest() {
-        UserCreateDto userCreateDto = new UserCreateDto("tester", "test@test.com");
-        User user = new User(1L, "tester", "test@test.com");
-        UserDto userDto = new UserDto(1L, "tester", "test@test.com");
+    void createTest() {
+        UserDto userDto = userService.create(new UserCreateDto("name", "email"));
 
-        Mockito
-                .when(userMapper.fromUserCreateDto(userCreateDto))
-                .thenReturn(user);
-        Mockito
-                .when(userRepository.save(user))
-                .thenReturn(user);
-        Mockito
-                .when(userMapper.toUserDto(user))
-                .thenReturn(userDto);
+        Assertions.assertNotNull(userDto);
+    }
 
-        userService.create(userCreateDto);
+    @Test
+    void getTest() {
+        UserDto userDto = userService.get(ownerOfItems1.getId());
 
-        Mockito.verify(userMapper, Mockito.times(1))
-                .fromUserCreateDto(userCreateDto);
-        Mockito.verify(userRepository, Mockito.times(1))
-                .save(user);
-        Mockito.verify(userMapper, Mockito.times(1))
-                .toUserDto(user);
+        Assertions.assertNotNull(userDto);
+        Assertions.assertEquals(ownerOfItems1.getId(), userDto.getId());
+        Assertions.assertEquals(ownerOfItems1.getName(), userDto.getName());
+        Assertions.assertEquals(ownerOfItems1.getEmail(), userDto.getEmail());
+    }
+
+    @Test
+    void updateTest() {
+        UserDto userDto = userService.update(
+                new UserDto(null, "new name", "new email"),
+                ownerOfItems1.getId()
+        );
+
+        Assertions.assertNotNull(userDto);
+        Assertions.assertEquals(ownerOfItems1.getId(), userDto.getId());
+        Assertions.assertEquals("new name", userDto.getName());
+        Assertions.assertEquals("new email", userDto.getEmail());
+    }
+
+    @Test
+    void deleteTest() {
+        UserDto userDto = userService.delete(ownerOfItems1.getId());
+
+        Assertions.assertNotNull(userDto);
+        Assertions.assertEquals(ownerOfItems1.getId(), userDto.getId());
+        Assertions.assertEquals(ownerOfItems1.getName(), userDto.getName());
+        Assertions.assertEquals(ownerOfItems1.getEmail(), userDto.getEmail());
     }
 }

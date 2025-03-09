@@ -1,60 +1,64 @@
 package ru.practicum.shareit.request.service;
 
-import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import ru.practicum.shareit.item.ItemMapper;
-import ru.practicum.shareit.item.storage.ItemRepository;
-import ru.practicum.shareit.request.ItemRequestMapper;
+import ru.practicum.shareit.item.Item;
+import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
-import ru.practicum.shareit.request.storage.ItemRequestRepository;
-import ru.practicum.shareit.user.User;
-import ru.practicum.shareit.user.storage.UserRepository;
+import ru.practicum.shareit.service.ServiceTest;
 
 import java.util.List;
-import java.util.Optional;
 
+import static org.mockito.Mockito.when;
+
+@Nested
 @SpringJUnitConfig({ItemRequestServiceImpl.class})
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
-class ItemRequestServiceTest {
-    private final ItemRequestService itemRequestService;
-
-    @MockBean
-    private final ItemRequestRepository itemRequestRepository;
-
-    @MockBean
-    private final UserRepository userRepository;
-
-    @MockBean
-    private final ItemRepository itemRepository;
-
-    @MockBean
-    private final ItemRequestMapper itemRequestMapper;
-
-    @MockBean
-    private final ItemMapper itemMapper;
+class ItemRequestServiceTest extends ServiceTest {
+    @Autowired
+    private ItemRequestService itemRequestService;
 
     @Test
-    public void getAllRequestsWhenNoRequests() {
-        User user = new User(1L, "tester", "test@test.com");
+    void createRequestTest() {
+        ItemRequestDto request
+                = itemRequestService.createRequest(requestor.getId(), new ItemRequestCreateDto("request"));
 
-        Mockito
-                .when(userRepository.findById(1L))
-                .thenReturn(Optional.of(user));
-        Mockito
-                .when(itemRequestRepository.findAllByRequestorNotOrderByCreatedDesc(user))
-                .thenReturn(List.of());
+        Assertions.assertNotNull(request);
+        Assertions.assertEquals("request", request.getDescription());
+    }
 
-        List<ItemRequestDto> requests = itemRequestService.getAllRequests(1L);
+    @Test
+    void getRequestsForOwnerTest() {
+        when(itemRequestRepository.findAllByRequestorIsOrderByCreatedDesc(ArgumentMatchers.any()))
+                .thenReturn(List.of(itemRequest));
 
-        Mockito.verify(userRepository, Mockito.times(1))
-                .findById(1L);
-        Mockito.verify(itemRequestRepository, Mockito.times(1))
-                .findAllByRequestorNotOrderByCreatedDesc(user);
-        Assertions.assertTrue(requests.isEmpty());
+        List<ItemRequestDto> requestsForOwner = itemRequestService.getRequestsForOwner(requestor.getId());
+
+        Assertions.assertEquals(1, requestsForOwner.size());
+    }
+
+    @Test
+    void getAllRequestsTest() {
+        when(itemRequestRepository.findAllByRequestorNotOrderByCreatedDesc(ArgumentMatchers.any()))
+                .thenReturn(List.of(itemRequest));
+        Item item = itemsOfOwner2.getLast();
+
+        List<ItemRequestDto> requestsForOwner = itemRequestService.getAllRequests(requestor.getId());
+
+        Assertions.assertEquals(1, requestsForOwner.size());
+        Assertions.assertEquals(item.getId(), requestsForOwner.getFirst().getItems().getFirst().getId());
+    }
+
+    @Test
+    void getRequestByIdTest() {
+        ItemRequestDto request = itemRequestService.getRequestById(itemRequest.getId());
+
+        Assertions.assertNotNull(request);
+        Assertions.assertEquals(itemRequest.getId(), request.getId());
+        Assertions.assertEquals(itemRequest.getCreated(), request.getCreated());
+        Assertions.assertEquals(itemRequest.getDescription(), request.getDescription());
     }
 }

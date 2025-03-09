@@ -66,8 +66,7 @@ public class BookingServiceImpl implements BookingService {
             throw new BookingUnavailable(String.format("Item with id %d is not available", item.getId()));
         }
 
-        bookingRepository.save(booking);
-        return buildBookingDto(booking);
+        return buildBookingDto(bookingRepository.save(booking));
     }
 
     @Override
@@ -85,8 +84,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         booking.setStatus(approved ? BookingStatus.APPROVED : BookingStatus.REJECTED);
-        bookingRepository.save(booking);
-        return buildBookingDto(booking);
+        return buildBookingDto(bookingRepository.save(booking));
     }
 
     @Override
