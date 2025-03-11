@@ -47,11 +47,6 @@ public class BookingServiceImpl implements BookingService {
         Item item = RepositoryUtil.getItemWithCheck(itemRepository, bookingCreateDto.getItemId());
         Booking booking = bookingMapper.fromBookingCreateDto(bookingCreateDto, item, user);
 
-        if (booking.getStart().isAfter(booking.getEnd())) {
-            throw new BookingUnavailable(String.format("Incorrect data times: " +
-                    "start date %s is after then end date %s", booking.getStart(), booking.getEnd()));
-        }
-
         if (booking.getStart().isBefore(now)) {
             throw new BookingUnavailable(String.format("Incorrect data times: " +
                     "start date %s in past rel now %s", booking.getStart(), now));

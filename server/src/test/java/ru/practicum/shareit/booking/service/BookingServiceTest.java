@@ -45,19 +45,6 @@ class BookingServiceTest extends ServiceTest {
     }
 
     @Test
-    void createBooking_whenStartAfterEnd_throwBookingUnavailable() {
-        BookingCreateDto bookingCreateDto = new BookingCreateDto(
-                itemsOfOwner1.getFirst().getId(),
-                originNow.plusDays(22).toString(),
-                originNow.plusDays(21).toString()
-        );
-
-        Assertions.assertThrows(BookingUnavailable.class, () -> {
-            bookingService.createBooking(booker.getId(), bookingCreateDto);
-        });
-    }
-
-    @Test
     void createBooking_whenStartBeforeNow_throwBookingUnavailable() {
         BookingCreateDto bookingCreateDto = new BookingCreateDto(
                 itemsOfOwner1.getFirst().getId(),

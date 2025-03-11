@@ -33,6 +33,12 @@ public class BookingController {
 	public ResponseEntity<Object> createBooking(@RequestHeader("X-Sharer-User-Id") long userId,
 									@Valid @RequestBody BookItemRequestDto bookingCreateDto) {
 		log.info("Request from user {} to book item: {}", userId, bookingCreateDto);
+
+		if (bookingCreateDto.getStart().isAfter(bookingCreateDto.getEnd())) {
+			throw new IllegalArgumentException(String.format("Incorrect data times: " +
+					"start date %s is after then end date %s", bookingCreateDto.getStart(), bookingCreateDto.getEnd()));
+		}
+
 		return bookingClient.createBooking(userId, bookingCreateDto);
 	}
 

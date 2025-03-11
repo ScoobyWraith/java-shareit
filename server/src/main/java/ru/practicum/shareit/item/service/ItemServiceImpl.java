@@ -104,10 +104,6 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional(readOnly = true)
     public List<ItemDto> search(String searchText) {
-        if (searchText == null || searchText.isBlank()) {
-            return List.of();
-        }
-
         return itemRepository.search(searchText)
                 .stream()
                 .map(itemMapper::toItemDto)

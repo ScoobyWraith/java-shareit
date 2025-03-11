@@ -20,6 +20,8 @@ import ru.practicum.shareit.item.dto.CommentCreateDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemUpdateDto;
 
+import java.util.List;
+
 @Controller
 @RequestMapping(path = "/items")
 @RequiredArgsConstructor
@@ -82,6 +84,13 @@ public class ItemController {
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<Object> searchItems(@RequestParam String text) {
         log.info("Request to search items with text: {}", text);
+
+        if (text == null || text.isBlank()) {
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(List.of());
+        }
+
         return itemClient.search(text);
     }
 }
