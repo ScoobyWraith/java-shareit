@@ -1,2 +1,2 @@
 # java-shareit
-Template repository for Shareit project.
+Сервис, который позволяет планировать события и обмениваться мнениями о них.
